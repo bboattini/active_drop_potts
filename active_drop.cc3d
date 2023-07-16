@@ -1,0 +1,4 @@
+<Simulation version="3.6.2">
+   <PythonScript Type="PythonScript">Simulation/active_drop.py</PythonScript>
+   <Resource Type="Python">Simulation/active_dropSteppables.py</Resource>
+</Simulation>
