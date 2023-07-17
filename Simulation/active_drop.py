@@ -87,19 +87,22 @@ import sys
 from os import environ
 from os import getcwd
 import string
-#import os.path
+import os.path
 
 import CompuCellSetup
 
-for var in dir(CompuCellSetup):
-    print(var)
+# for var in dir(CompuCellSetup):
+#     print(var)
 
-sys.path.append("Simulation")
+import inspect
+source_file_path_with_name = inspect.getfile(inspect.currentframe())
+file_name = os.path.basename(source_file_path_with_name)
+source_file_path = source_file_path_with_name.replace(file_name,'')
+
+if source_file_path not in sys.path:
+    sys.path.append(source_file_path)
+    
 from parameters_inputs import *
-
-print("************************************")
-print(parameters)
-print("************************************")
     
 sim,simthread = CompuCellSetup.getCoreSimulationObjects()
 
