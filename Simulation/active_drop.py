@@ -1,8 +1,23 @@
 def configureSimulation(sim, parameters):
-    import CompuCellSetup
-    from XMLUtils import ElementCC3D
+    try:
+        from cc3d import CompuCellSetup
+        from cc3d.core.XMLUtils import ElementCC3D
+        CompuCell3DElmnt=ElementCC3D("CompuCell3D",{"Revision":"0","Version":"4.4.1"})
+        
+        MetadataElmnt=CompuCell3DElmnt.ElementCC3D("Metadata")
     
-    CompuCell3DElmnt=ElementCC3D("CompuCell3D",{"Revision":"20180728","Version":"3.7.8"})
+        # Basic properties simulation
+        MetadataElmnt.ElementCC3D("NumberOfProcessors",{},"4")
+        MetadataElmnt.ElementCC3D("DebugOutputFrequency",{},"10")
+        # MetadataElmnt.ElementCC3D("NonParallelModule",{"Name":"Potts"})
+    except:
+        try:
+            import CompuCellSetup
+            from XMLUtils import ElementCC3D
+            CompuCell3DElmnt=ElementCC3D("CompuCell3D",{"Revision":"20180728","Version":"3.7.8"})
+        except:
+            print("Error importing Libraries...good luck")
+    
     
     PottsElmnt=CompuCell3DElmnt.ElementCC3D("Potts")
     
@@ -19,7 +34,7 @@ def configureSimulation(sim, parameters):
     PluginElmnt.ElementCC3D("CellType",{"TypeId":"1","TypeName":"Liquid"})
     PluginElmnt.ElementCC3D("CellType",{"Freeze":"","TypeId":"2","TypeName":"Solid"})
     
-    target_volume = parameters['drop_size']**3
+    target_volume = (4*3.14*parameters['drop_size']**3)/3
     
     PluginElmnt_1=CompuCell3DElmnt.ElementCC3D("Plugin",{"Name":"Volume"})
     PluginElmnt_1.ElementCC3D("VolumeEnergyParameters",{"CellType":"Liquid","LambdaVolume":"2.0","TargetVolume":target_volume})
@@ -38,6 +53,7 @@ def configureSimulation(sim, parameters):
     
     # Module tracking neighboring cells of each cell
     
+
     PluginElmnt_5=CompuCell3DElmnt.ElementCC3D("Plugin",{"Name":"Contact"})
     # Specification of adhesion energies
     PluginElmnt_5.ElementCC3D("Energy",{"Type1":"Medium","Type2":"Medium"},parameters['energy_gas_gas'])
@@ -46,38 +62,7 @@ def configureSimulation(sim, parameters):
     PluginElmnt_5.ElementCC3D("Energy",{"Type1":"Liquid","Type2":"Liquid"},parameters['energy_liq_liq'])
     PluginElmnt_5.ElementCC3D("Energy",{"Type1":"Liquid","Type2":"Solid"},parameters['energy_liq_sol'])
     PluginElmnt_5.ElementCC3D("Energy",{"Type1":"Solid","Type2":"Solid"},parameters['energy_sol_sol'])
-    PluginElmnt_5.ElementCC3D("NeighborOrder",{},"1")
-    
-    SteppableElmnt=CompuCell3DElmnt.ElementCC3D("Steppable",{"Type":"UniformInitializer"})
-    
-    # Floor
-    RegionElmnt=SteppableElmnt.ElementCC3D("Region")
-    RegionElmnt.ElementCC3D("BoxMin",{"x":"1","y":"1","z":"1"})
-    RegionElmnt.ElementCC3D("BoxMax",{"x":parameters['size_x'],"y":parameters['size_y'],"z":"5"})
-    RegionElmnt.ElementCC3D("Gap",{},"0")
-    RegionElmnt.ElementCC3D("Width",{},"5")
-    RegionElmnt.ElementCC3D("Types",{},"Solid")
-    
-    parameters['obstacle_hight'] += 5
-    # Obstacles
-    RegionElmnt=SteppableElmnt.ElementCC3D("Region")
-    RegionElmnt.ElementCC3D("BoxMin",{"x":"1","y":"1","z":"5"})
-    RegionElmnt.ElementCC3D("BoxMax",{"x":parameters['size_x'],"y":parameters['size_y'],"z":parameters['obstacle_hight']})
-    RegionElmnt.ElementCC3D("Gap",{},parameters['obstacle_distance'])
-    RegionElmnt.ElementCC3D("Width",{},parameters['obstacle_width'])
-    RegionElmnt.ElementCC3D("Types",{},"Solid")
-    
-    x_center = parameters['size_x']/2
-    y_center = parameters['size_y']/2
-        
-    drop_half_size = parameters['drop_size']/2
-    
-    RegionElmnt=SteppableElmnt.ElementCC3D("Region")
-    RegionElmnt.ElementCC3D("BoxMin",{"x":x_center - drop_half_size,"y":y_center - drop_half_size,"z":parameters['obstacle_hight']})
-    RegionElmnt.ElementCC3D("BoxMax",{"x":x_center + drop_half_size,"y":y_center + drop_half_size,"z":parameters['obstacle_hight']+parameters['drop_size']})
-    RegionElmnt.ElementCC3D("Gap",{},"0")
-    RegionElmnt.ElementCC3D("Width",{},parameters['drop_size'])
-    RegionElmnt.ElementCC3D("Types",{},"Liquid")
+    PluginElmnt_5.ElementCC3D("NeighborOrder",{},"3")
 
     CompuCellSetup.setSimulationXMLDescription(CompuCell3DElmnt)    
     
@@ -89,7 +74,13 @@ from os import getcwd
 import string
 import os.path
 
-import CompuCellSetup
+try:
+    from cc3d import CompuCellSetup
+except:
+    try:
+        import CompuCellSetup
+    except:
+        print("Error importing CompuCellSetup")
 
 # for var in dir(CompuCellSetup):
 #     print(var)
@@ -116,6 +107,10 @@ CompuCellSetup.initializeSimulationObjects(sim,simthread)
 #Add Python steppables here
 steppableRegistry=CompuCellSetup.getSteppableRegistry()
 
+from active_dropSteppables import Initializer
+steppableInstance=Initializer(sim,_frequency=1, parameters=parameters)
+steppableRegistry.registerSteppable(steppableInstance)
+
 from active_dropSteppables import Gravity
 steppableInstance=Gravity(sim,_frequency=1, parameters=parameters)
 steppableRegistry.registerSteppable(steppableInstance)
@@ -123,7 +118,10 @@ steppableRegistry.registerSteppable(steppableInstance)
 from active_dropSteppables import CellMotilitySteppable
 steppableInstance=CellMotilitySteppable(sim,_frequency=1, parameters=parameters)
 steppableRegistry.registerSteppable(steppableInstance)
-CellMotilitySteppable
+
+from active_dropSteppables import Measures_and_Plot
+steppableInstance=Measures_and_Plot(sim,_frequency=1, parameters=parameters)
+steppableRegistry.registerSteppable(steppableInstance)
         
 CompuCellSetup.mainLoop(sim,simthread,steppableRegistry)
         
