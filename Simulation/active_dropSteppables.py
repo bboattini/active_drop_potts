@@ -30,21 +30,21 @@ class Initializer(SteppableBasePy):
             self.pillar_width = 0
     def start(self):
         # any code in the start function runs before MCS=0
-        cell = self.new_cell(self.LIQUID)
+        cell = self.new_cell(self.LIQUID)										
         
-        for x, y, z in self.every_pixel():
+        for x, y, z in self.every_pixel():											# creating a liquid drop over the substrate
             x0 = int(self.dim.x/2); y0 = int(self.dim.y/2); z0 = self.drop_rad
             r = np.sqrt((x-x0)**2+(y-y0)**2+(z-z0)**2)
             if r < self.drop_rad:
                 self.cell_field[x, y, z] = cell
         
-        cell = self.new_cell(self.SOLID) 
+        cell = self.new_cell(self.SOLID) 											# creating a flat substrate
         self.cell_field[0:self.dim.x, 0:self.dim.y, 0] = cell
         
         pillar_min = 0
         pillar_max = self.pillar_width
         arr_pillar = []
-        for x in range(self.dim.x):
+        for x in range(self.dim.x):													# creating a micropillar substrate
             if pillar_min<=x<pillar_max:
                 arr_pillar.append(1)
             elif x==pillar_max:
@@ -162,27 +162,30 @@ class Measures_and_Plot(SteppableBasePy):
             self.pillar_width = 0  
 
     def start(self):
+		# creating window to plot B and H overtime
         self.plot_win = self.add_new_plot_window(title='Geometry',x_axis_title='x',y_axis_title='y', x_scale_type='linear', y_scale_type='linear',grid=False)
         self.plot_win.add_plot("B", style='Lines', color='red', size=5)
         self.plot_win.add_plot("H", style='Lines', color='green', size=5)
 
     def step(self,mcs):  
-        if mcs%time_interval==0:
+        if mcs%time_interval==0:											# selcting pixels by cell id
             cell = self.fetch_cell_by_id(1)
             pixel_list = self.get_cell_pixel_list(cell)
             pixel_arr = []                     
             
 
-            for pixel_data in pixel_list:
+            for pixel_data in pixel_list:									# saving pixels coordinates
                 pixel_arr.append(self.point_3d_to_numpy(pixel_data.pixel))
             pixel_arr = np.array(pixel_arr)
             z_cords = pixel_arr[:,2]
             y_cords = pixel_arr[:,1]
             x_cords = pixel_arr[:,0]
+			# calculating B and H
             By_max = np.max(y_cords[z_cords == self.pillar_hight+1]) - np.min(y_cords[z_cords == self.pillar_hight+1])
             Bx_max = np.max(x_cords[z_cords == self.pillar_hight+1]) - np.min(x_cords[z_cords == self.pillar_hight+1])
             B = (By_max + Bx_max)/4
             H = np.max(z_cords) - self.pillar_hight
+			# plotting and printing B and H data
             self.plot_win.add_data_point("B", mcs, B)
             self.plot_win.add_data_point("H", mcs, H)
             print("Bx=",Bx_max/2,"   By=",By_max/2,"   H=", H,"   sin=", 2*H*B/(H**2 + B**2))
