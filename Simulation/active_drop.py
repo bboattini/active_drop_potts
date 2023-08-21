@@ -49,9 +49,10 @@ def configureSimulation(sim, parameters):
     
     # Module tracking center of mass of each cell
     
-    PluginElmnt_4=CompuCell3DElmnt.ElementCC3D("Plugin",{"Name":"NeighborTracker"})
+    PluginElmnt_4=CompuCell3DElmnt.ElementCC3D("Plugin",{"Name":"PixelTracker"})
     
     # Module tracking neighboring cells of each cell
+    
     
 
     PluginElmnt_5=CompuCell3DElmnt.ElementCC3D("Plugin",{"Name":"Contact"})
